@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Splitter - Divisore PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 40px 20px;
+            margin: 30px 0;
+            background: #fafafa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e8f2ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #ddd;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .settings {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            text-align: left;
+        }
+
+        .settings h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .setting-group input, .setting-group select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .setting-group input:focus, .setting-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .progress-container {
+            margin: 25px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .results h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .file-list {
+            list-style: none;
+        }
+
+        .file-item {
+            background: white;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .file-info {
+            flex-grow: 1;
+            text-align: left;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .download-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .file-item {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 PDF Splitter</h1>
+        <p class="subtitle">Dividi facilmente i tuoi file PDF in parti più piccole</p>
+        
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">Clicca qui o trascina un file PDF</div>
+            <div style="color: #999; font-size: 0.9em;">Formati supportati: PDF</div>
+        </div>
+        
+        <input type="file" id="fileInput" accept=".pdf" />
+        
+        <div class="settings">
+            <h3>⚙️ Impostazioni di divisione</h3>
+            
+            <div class="setting-group">
+                <label for="splitMethod">Metodo di divisione:</label>
+                <select id="splitMethod">
+                    <option value="pages">Per numero di pagine</option>
+                    <option value="size">Per dimensione del file (approssimativa)</option>
+                </select>
+            </div>
+            
+            <div class="setting-group" id="pagesGroup">
+                <label for="pagesPerFile">Pagine per file:</label>
+                <input type="number" id="pagesPerFile" value="10" min="1" max="1000">
+            </div>
+            
+            <div class="setting-group" id="sizeGroup" style="display: none;">
+                <label for="maxSizeMB">Dimensione massima per file (MB):</label>
+                <input type="number" id="maxSizeMB" value="5" min="1" max="100" step="0.1">
+            </div>
+        </div>
+        
+        <button class="btn" id="splitBtn" disabled>Dividi PDF</button>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Elaborazione in corso...</div>
+        </div>
+        
+        <div class="error" id="errorDiv"></div>
+        
+        <div class="results" id="results">
+            <h3>📦 File generati</h3>
+            <ul class="file-list" id="fileList"></ul>
+            <button class="btn" id="downloadAllBtn">Scarica tutti come ZIP</button>
+        </div>
+    </div>
+
+    <script>
+        let originalFile = null;
+        let splitFiles = [];
+
+        // Gestione upload file
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.querySelector('.upload-area');
+        const splitBtn = document.getElementById('splitBtn');
+        const splitMethodSelect = document.getElementById('splitMethod');
+        const pagesGroup = document.getElementById('pagesGroup');
+        const sizeGroup = document.getElementById('sizeGroup');
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                handleFileUpload(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+
+        // Cambio metodo di divisione
+        splitMethodSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'pages') {
+                pagesGroup.style.display = 'block';
+                sizeGroup.style.display = 'none';
+            } else {
+                pagesGroup.style.display = 'none';
+                sizeGroup.style.display = 'block';
+            }
+        });
+
+        function handleFileUpload(file) {
+            originalFile = file;
+            splitBtn.disabled = false;
+            uploadArea.innerHTML = `
+                <div class="upload-icon">✅</div>
+                <div class="upload-text">File caricato: ${file.name}</div>
+                <div style="color: #999; font-size: 0.9em;">Dimensione: ${formatFileSize(file.size)}</div>
+            `;
+            hideError();
+        }
+
+        splitBtn.addEventListener('click', async () => {
+            if (!originalFile) return;
+
+            showProgress();
+            hideError();
+            hideResults();
+
+            try {
+                const arrayBuffer = await originalFile.arrayBuffer();
+                const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                const totalPages = pdfDoc.getPageCount();
+
+                updateProgress(10, `Analizzando PDF (${totalPages} pagine)...`);
+
+                const splitMethod = splitMethodSelect.value;
+                
+                if (splitMethod === 'pages') {
+                    await splitByPages(pdfDoc, totalPages);
+                } else {
+                    await splitBySize(pdfDoc, totalPages, arrayBuffer.byteLength);
+                }
+
+                showResults();
+                updateProgress(100, 'Completato!');
+
+            } catch (error) {
+                console.error('Errore durante la divisione:', error);
+                showError('Errore durante la divisione del PDF. Assicurati che il file sia valido.');
+            } finally {
+                hideProgress();
+            }
+        });
+
+        async function splitByPages(pdfDoc, totalPages) {
+            const pagesPerFile = parseInt(document.getElementById('pagesPerFile').value);
+            const totalFiles = Math.ceil(totalPages / pagesPerFile);
+            splitFiles = [];
+
+            for (let i = 0; i < totalFiles; i++) {
+                const startPage = i * pagesPerFile;
+                const endPage = Math.min(startPage + pagesPerFile - 1, totalPages - 1);
+                
+                updateProgress(
+                    10 + (i / totalFiles) * 80,
+                    `Creando file ${i + 1} di ${totalFiles} (pagine ${startPage + 1}-${endPage + 1})...`
+                );
+
+                const newPdf = await PDFLib.PDFDocument.create();
+                const pages = await newPdf.copyPages(pdfDoc, Array.from({length: endPage - startPage + 1}, (_, idx) => startPage + idx));
+                
+                pages.forEach(page => newPdf.addPage(page));
+                
+                const pdfBytes = await newPdf.save();
+                const fileName = `${originalFile.name.replace('.pdf', '')}_parte_${i + 1}.pdf`;
+                
+                splitFiles.push({
+                    name: fileName,
+                    data: pdfBytes,
+                    size: pdfBytes.length,
+                    pages: endPage - startPage + 1
+                });
+            }
+        }
+
+        async function splitBySize(pdfDoc, totalPages, originalSize) {
+            const maxSizeMB = parseFloat(document.getElementById('maxSizeMB').value);
+            const maxSizeBytes = maxSizeMB * 1024 * 1024;
+            const estimatedPagesPerFile = Math.max(1, Math.floor((totalPages * maxSizeBytes) / originalSize));
+            
+            splitFiles = [];
+            let currentPage = 0;
+            let fileIndex = 1;
+
+            while (currentPage < totalPages) {
+                let pagesInThisFile = Math.min(estimatedPagesPerFile, totalPages - currentPage);
+                let pdfBytes;
+                
+                // Prova con il numero stimato di pagine, riduci se troppo grande
+                do {
+                    updateProgress(
+                        10 + (currentPage / totalPages) * 80,
+                        `Creando file ${fileIndex} (tentativo con ${pagesInThisFile} pagine)...`
+                    );
+
+                    const newPdf = await PDFLib.PDFDocument.create();
+                    const pages = await newPdf.copyPages(pdfDoc, Array.from({length: pagesInThisFile}, (_, idx) => currentPage + idx));
+                    pages.forEach(page => newPdf.addPage(page));
+                    
+                    pdfBytes = await newPdf.save();
+                    
+                    if (pdfBytes.length > maxSizeBytes && pagesInThisFile > 1) {
+                        pagesInThisFile = Math.max(1, Math.floor(pagesInThisFile * 0.8));
+                    } else {
+                        break;
+                    }
+                } while (pagesInThisFile > 0);
+
+                const fileName = `${originalFile.name.replace('.pdf', '')}_parte_${fileIndex}.pdf`;
+                
+                splitFiles.push({
+                    name: fileName,
+                    data: pdfBytes,
+                    size: pdfBytes.length,
+                    pages: pagesInThisFile
+                });
+
+                currentPage += pagesInThisFile;
+                fileIndex++;
+            }
+        }
+
+        function showResults() {
+            const results = document.getElementById('results');
+            const fileList = document.getElementById('fileList');
+            
+            fileList.innerHTML = '';
+            
+            splitFiles.forEach((file, index) => {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                li.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${formatFileSize(file.size)} • ${file.pages} pagine</div>
+                    </div>
+                    <button class="download-btn" onclick="downloadFile(${index})">Scarica</button>
+                `;
+                fileList.appendChild(li);
+            });
+            
+            results.style.display = 'block';
+        }
+
+        function downloadFile(index) {
+            const file = splitFiles[index];
+            const blob = new Blob([file.data], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Scarica tutti come ZIP (semplificato - scarica uno per volta)
+        document.getElementById('downloadAllBtn').addEventListener('click', () => {
+            splitFiles.forEach((_, index) => {
+                setTimeout(() => downloadFile(index), index * 500);
+            });
+        });
+
+        function showProgress() {
+            document.getElementById('progressContainer').style.display = 'block';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorDiv');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorDiv').style.display = 'none';
+        }
+
+        function hideResults() {
+            document.getElementById('results').style.display = 'none';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>

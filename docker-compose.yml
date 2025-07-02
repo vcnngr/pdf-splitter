@@ -1,0 +1,39 @@
+services:
+  pdf-splitter:
+    build: .
+    container_name: pdf-splitter-app
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    
+    # Variabili d'ambiente (opzionali)
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+    
+    # Mount per i log (opzionale)
+    volumes:
+      - ./logs:/var/log/nginx
+    
+    # Limiti risorse
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.25'
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Network (opzionale)
+networks:
+  default:
+    name: pdf-splitter-network
